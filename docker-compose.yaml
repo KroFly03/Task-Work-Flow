@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  app:
+    container_name: task_work_flow_app
+    build: ./backend
+    restart: always
+    env_file:
+      - ./backend/.env
+    environment:
+      - POSTGRES_HOST=db
+    ports:
+      - "8000:8000"
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+
+  migrations:
+    container_name: task_work_flow_migrations
+    build: ./backend
+    env_file:
+      - ./backend/.env
+    environment:
+      - POSTGRES_HOST=db
+    depends_on:
+      db:
+        condition: service_healthy
+    command: make migrate
+
+  db:
+    container_name: task_work_flow_db
+    image: postgres:15.2
+    restart: always
+    ports:
+      - "5432:5432"
+    env_file:
+      - ./backend/.env
+    healthcheck:
+      test: pg_isready -U admin -d task_work_flow
+      interval: 3s
+      retries: 10
+      timeout: 3s
+    volumes:
+      - pg_data:/var/lib/postgresql/data/
+
+volumes:
+  pg_data:
